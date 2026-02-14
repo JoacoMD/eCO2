@@ -12,6 +12,8 @@ import { TokenController } from './tokens/token.controller';
 import { TokensRepository } from './tokens/tokens.repository';
 import { AuthModule } from './auth/auth.module';
 import { CompaniesModule } from './companies/companies.module';
+import { Web3Repository } from './web3/web3.repository';
+import { ProjectController } from './projects/project.controller';
 
 @Module({
   imports: [
@@ -22,7 +24,8 @@ import { CompaniesModule } from './companies/companies.module';
     AuthModule,
     CompaniesModule,
   ],
-  controllers: [AppController, TokenController],
-  providers: [AppService, Web3Service, EventsListenerService, ProjectService, ProjectRepository, TokensService, TokensRepository],
+  controllers: [AppController, TokenController, ProjectController],
+  providers: [AppService, Web3Service, EventsListenerService, ProjectService, ProjectRepository, TokensService, TokensRepository, Web3Repository],
+  exports: [Web3Service],
 })
 export class AppModule {}

@@ -28,4 +28,16 @@ export class TokensService {
         }
         return this.tokensRepository.createToken(tokenId, project[0].id);
     }
+
+    async findProjectByTokenId(tokenId: number) {
+        const token = await this.tokensRepository.findTokenById(tokenId);
+        if (token.length === 0) {
+            throw new Error('Token no encontrado');
+        }
+        const project = await this.projectRepository.findProjectById(token[0].projectId);
+        if (project.length === 0) {
+            throw new Error('Proyecto no encontrado para el token');
+        }
+        return project[0];
+    }
 }

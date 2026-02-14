@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Req, Res, UseGuards } from '@nestjs/common';
 import { CompaniesService } from './companies.service';
 import { NewCompany } from 'src/database/schema';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('companies')
 export class CompaniesController {
@@ -16,16 +17,23 @@ export class CompaniesController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch('/:address')
   async updateCompanyInfo(
     @Param('address') address: string,
     @Body() data: Partial<NewCompany>,
-  ): Promise<string> {
+    @Req() req,
+    @Res() res
+  ) {
+    if (!req.user || req.user.address?.toLowerCase() !== address.toLowerCase()) {
+      res.status(403).json({ message: 'You can only update your own company' });
+      return;
+    }
     try {
       const updatedCompany = await this.companiesService.updateCompanyInfo(address, data);
-      return JSON.stringify(updatedCompany[0]);
+      res.json(updatedCompany[0]);
     } catch (error) {
-      return `Error updating company info: ${error.message}`;
+      res.status(500).json({ message: `Error updating company info: ${error.message}` });
     }
   }
 }

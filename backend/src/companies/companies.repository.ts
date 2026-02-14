@@ -18,11 +18,18 @@ export class CompanyRepository {
       .limit(1);
   }
 
-  async updateCompanyInfo(companyId: string, data: Partial<schema.NewCompany>) {
+  async updateCompanyInfo(companyId: number, data: Partial<schema.NewCompany>) {
     return this.db
       .update(schema.companies)
       .set(data)
       .where(eq(schema.companies.id, companyId))
+      .returning();
+  }
+
+  async createCompany(newCompany: schema.NewCompany) {
+    return this.db
+      .insert(schema.companies)
+      .values(newCompany)
       .returning();
   }
 }

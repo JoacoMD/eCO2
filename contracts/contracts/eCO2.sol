@@ -40,9 +40,12 @@ contract eCO2 {
     address public owner;
     mapping(address => uint256[]) public ownedTokensIds;
     IeCO2Tokens public eco2TokenContract;
+    mapping(uint256 => Listing) public listings; 
 
-    mapping(uint256 => Listing) public listings; // listingId => Listing
     uint256 public nextListingId = 1;
+    uint256 public nextProjectId = 1;
+    uint256 public nextCompanyId = 1;
+    uint256 public nextMilestoneId = 1;
 
     event ProjectRegistered(address indexed projectAddress, uint256 projectId, string name);
     event ProjectApproved(address indexed projectAddress);
@@ -54,6 +57,7 @@ contract eCO2 {
     event CompanyRejected(address indexed companyAddress);
     event AdministratorAdded(address indexed adminAddress);
     event AdministratorRemoved(address indexed adminAddress);
+    event TokenMinted(address indexed to, uint256 tokenId, uint256 amount);
     event TokensListed(uint256 indexed listingId, address indexed seller, uint256 tokenId, uint256 amount, uint256 price);
     event TokensPurchased(uint256 indexed listingId, address indexed buyer, uint256 amount, uint256 totalPrice);
     event ListingCancelled(uint256 indexed listingId);
@@ -117,7 +121,7 @@ contract eCO2 {
         require(projects[msg.sender].id == 0, "Project already registered");
         require(companies[msg.sender].id == 0, "Companies cannot register as projects");
         Project memory project = Project({
-            id: uint256(uint160(msg.sender)),
+            id: nextProjectId++,
             name: projectName,
             projectAddress: msg.sender,
             milestones: new uint256[](0),
@@ -149,6 +153,7 @@ contract eCO2 {
         projects[projectAddress].status = Status.APPROVED;
         emit ProjectApproved(projectAddress);
         uint256 newToken = eco2TokenContract.mint(projectAddress, 100);
+        emit TokenMinted(projectAddress, newToken, 100);
         ownedTokensIds[projectAddress].push(newToken);
     }
 
@@ -159,11 +164,13 @@ contract eCO2 {
     }
 
     // Registro avance de proyecto
-    function addMilestone(uint256 milestone) public {
+    function addMilestone() public returns (uint256) {
         require(projects[msg.sender].id != 0, "Project not registered");
         require(projects[msg.sender].status == Status.APPROVED, "Project not approved");
+        uint256 milestone = nextMilestoneId++;
         projects[msg.sender].milestones.push(milestone);
         emit MilestoneAdded(msg.sender, milestone);
+        return milestone;
     }
 
     // Verificación de avance
@@ -178,6 +185,7 @@ contract eCO2 {
 
         uint256 newToken = eco2TokenContract.mint(projectAddress, 100);
         ownedTokensIds[projectAddress].push(newToken);
+        emit TokenMinted(projectAddress, newToken, 100);
     }
 
     // Registro de empresa
@@ -185,7 +193,7 @@ contract eCO2 {
         require(companies[msg.sender].id == 0, "Company already registered");
         require(projects[msg.sender].id == 0, "Projects cannot register as companies");
         Company memory company = Company({
-            id: uint256(uint160(msg.sender)),
+            id: nextCompanyId++,
             name: companyName,
             companyAddress: msg.sender,
             status: Status.PENDING

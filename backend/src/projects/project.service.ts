@@ -1,13 +1,14 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { ProjectRepository } from "./project.repository";
 import { CreateMilestoneRequest, UpdateProjectRequest } from "./dto/types";
-import { randomUUID } from "crypto";
+import { Web3Service } from "src/web3/web3.service";
 
 @Injectable()
 export class ProjectService {
 
     constructor(
         @Inject() private readonly projectRepository: ProjectRepository,
+        @Inject() private readonly web3Service: Web3Service,
     ) {}
 
     async updateMilestoneInfo(projectAddress: string, data: CreateMilestoneRequest) {
@@ -21,16 +22,32 @@ export class ProjectService {
         return this.projectRepository.updateMilestoneInfo(projectAddress, data);
     }
 
-    async addMilestone(projectAddress: string, data: CreateMilestoneRequest) {
+    async upsertMilestone(projectAddress: string, milestoneId: number, data: { title?: string; url?: string }) {
         const project = await this.projectRepository.findProjectByAddress(projectAddress);
         if (project.length === 0) {
             throw new Error('Proyecto no encontrado');
         }
-        await this.projectRepository.addMilestone({
-            id: randomUUID(),
+        
+        // Check if milestone exists and belongs to this project
+        // The milestone may already exist if the event listener processed the MilestoneAdded event
+        // before the frontend made this request
+        const existingMilestone = await this.projectRepository.findMilestoneById(milestoneId);
+        if (existingMilestone.length > 0 && existingMilestone[0].projectId !== project[0].id) {
+            throw new Error('El hito no pertenece al proyecto especificado');
+        }
+        
+        // Upsert: Insert if not exists (event not processed yet), update if exists (event already processed)
+        return this.projectRepository.upsertMilestone(project[0].id, milestoneId, data);
+    }
+
+    async createMilestone(projectAddress: string, id: number) {
+        const project = await this.projectRepository.findProjectByAddress(projectAddress);
+        if (project.length === 0) {
+            throw new Error('Proyecto no encontrado');
+        }
+        return this.projectRepository.addMilestone({
+            id,
             projectId: project[0].id,
-            title: data.title,
-            url: data.url,
         });
     }
 
@@ -39,11 +56,50 @@ export class ProjectService {
     }
 
     async updateProjectInfo(address: string, data: UpdateProjectRequest) {
-        const project = await this.projectRepository.findProjectByAddress(address);
+        let project = await this.projectRepository.findProjectByAddress(address);
+        
+        // If project not found in DB, query the smart contract
+        if (project.length === 0) {
+            try {
+                const contract = this.web3Service.getContract();
+                const projectFromChain = await contract.getProject(address);
+                
+                // Check if project exists on chain (id != 0)
+                if (projectFromChain && projectFromChain.id && Number(projectFromChain.id) !== 0) {
+                    // Save project to database
+                    await this.createProject(
+                        address,
+                        Number(projectFromChain.id),
+                        projectFromChain.name
+                    );
+                    // Retrieve the newly created project
+                    project = await this.projectRepository.findProjectByAddress(address);
+                } else {
+                    throw new Error('Proyecto no encontrado en la blockchain');
+                }
+            } catch (error) {
+                if (error.message.includes('Project not registered')) {
+                    throw new Error('Proyecto no registrado en la blockchain');
+                }
+                throw new Error(`Error consultando proyecto: ${error.message}`);
+            }
+        }
+        
         if (project.length === 0) {
             throw new Error('Proyecto no encontrado');
         }
         return this.projectRepository.updateProjectInfo(project[0].id, data);
     }
 
+    async createProject(address: string, projectId: number, name: string) {
+        const existingProject = await this.projectRepository.findProjectByAddress(address);
+        if (existingProject.length > 0) {
+            throw new Error('El proyecto ya está registrado');
+        }
+        return this.projectRepository.createProject({
+            address,
+            id: projectId,
+            name,
+        });
+    }
 }

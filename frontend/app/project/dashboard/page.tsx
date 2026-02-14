@@ -7,6 +7,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   BaseError,
   useReadContract,
+  useSimulateContract,
+  useWaitForTransactionReceipt,
   useWalletClient,
   useWriteContract,
 } from "wagmi";
@@ -16,7 +18,8 @@ import MilestonesSection, {
 import { toast } from "sonner";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { formatEther, parseEther } from "viem";
+import { formatEther, parseEther, parseEventLogs } from "viem";
+import Image from "next/image";
 
 enum ProjectStatus {
   PENDING_APPROVAL,
@@ -52,6 +55,9 @@ const statusLabels: Record<ProjectStatus, React.ReactNode> = {
   ),
 };
 
+import { BACKEND_URL } from "@/lib/config";
+import { useAuth } from "@/components/auth/AuthProvider";
+
 export default function ProjectDashboardPage() {
   const { data: wallet, isLoading: walletLoading } = useWalletClient();
   const { data: project, isLoading: projectLoading } = useReadContract({
@@ -71,11 +77,17 @@ export default function ProjectDashboardPage() {
     query: { enabled: !!wallet?.account.address },
   });
 
+  const [projectInfo, setProjectInfo] = useState<{
+    name: string;
+    description: string;
+    image: string;
+  } | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [listingTokenId, setListingTokenId] = useState<string>("");
   const [listingAmount, setListingAmount] = useState<string>("1");
   const [listingPrice, setListingPrice] = useState<string>("0.01");
   const [listingSubmitting, setListingSubmitting] = useState(false);
+  const [addMilestoneHash, setAddMilestoneHash] = useState<`0x${string}` | undefined>();
 
   const projectAddress =
     wallet?.account.address || "0x0000000000000000000000000000000000000000";
@@ -91,17 +103,95 @@ export default function ProjectDashboardPage() {
   });
 
   const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [pendingMilestone, setPendingMilestone] = useState<Milestone | null>(null);
 
+  const { authFetch } = useAuth();
   const { writeContractAsync, isSuccess, error } = useWriteContract();
+  const { data: simulateData } = useSimulateContract({
+    ...eco2ContractConfig,
+    functionName: "addMilestone",
+    account: wallet?.account.address,
+  });
+
+  const { data: milestoneReceipt, isSuccess: isMilestoneSuccess } = useWaitForTransactionReceipt({
+    hash: addMilestoneHash,
+  });
 
   const handleAddMilestone = async (milestone: Milestone) => {
-    await writeContractAsync({
-      ...eco2ContractConfig,
-      functionName: "addMilestone",
-      args: [BigInt(milestone.id)],
-    });
-    setMilestones((prevMilestones) => [...prevMilestones, milestone]);
+    if (simulateData?.request) {
+      try {
+        setPendingMilestone(milestone);
+        const hash = await writeContractAsync(simulateData.request);
+        setAddMilestoneHash(hash);
+        toast.info("Milestone transaction submitted. Waiting for confirmation...");
+      } catch (error) {
+        console.error("Error creating milestone transaction:", error);
+        toast.error("Error creating milestone transaction");
+        setPendingMilestone(null);
+      }
+    }
   };
+
+  // Process milestone after transaction confirmation
+  useEffect(() => {
+    if (isMilestoneSuccess && milestoneReceipt && pendingMilestone) {
+      try {
+        // Parse event logs to get the milestone ID
+        const logs = parseEventLogs({
+          abi: eco2ContractConfig.abi,
+          logs: milestoneReceipt.logs,
+          eventName: 'MilestoneAdded',
+        });
+
+        if (logs.length > 0) {
+          const milestoneId = logs[0].args.milestone;
+          console.log("Milestone ID from event:", milestoneId);
+
+          // Call backend to save milestone details (upsert: create if not exists, update if exists)
+          // The backend event listener may have already created the milestone with just id and projectId
+          // This POST request will either:
+          // 1. Create the milestone if event listener hasn't processed it yet
+          // 2. Update the existing milestone with title and url if it was already created
+          // This prevents conflicts and ensures the milestone is always properly saved
+          authFetch(`${BACKEND_URL}/projects/${projectAddress}/milestones`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: Number(milestoneId),
+              title: pendingMilestone.title,
+              url: pendingMilestone.url,
+            }),
+          })
+            .then(async (response) => {
+              if (!response.ok) {
+                throw new Error("Backend failed to save milestone");
+              }
+              const data = await response.json();
+              console.log("Milestone saved in backend:", data);
+              toast.success(`Milestone added successfully! ID: ${milestoneId}`);
+              setMilestones((prevMilestones) => [...prevMilestones, pendingMilestone]);
+            })
+            .catch((err) => {
+              console.error("Error saving milestone to backend:", err);
+              toast.error("Milestone created on blockchain but failed to save details in backend");
+            })
+            .finally(() => {
+              setPendingMilestone(null);
+              setAddMilestoneHash(undefined);
+            });
+        } else {
+          toast.error("Failed to get milestone ID from transaction");
+          setPendingMilestone(null);
+          setAddMilestoneHash(undefined);
+        }
+      } catch (error) {
+        console.error("Error processing milestone transaction:", error);
+        toast.error("Error processing milestone");
+        setPendingMilestone(null);
+        setAddMilestoneHash(undefined);
+      }
+    }
+  }, [isMilestoneSuccess, milestoneReceipt, pendingMilestone, authFetch, projectAddress]);
 
   useEffect(() => {
     if (balanceData) {
@@ -113,6 +203,25 @@ export default function ProjectDashboardPage() {
       setBalance(totalBalance);
     }
   }, [balanceData]);
+
+  useEffect(() => {
+    if (project) {
+      fetch(`${BACKEND_URL}/projects/${projectAddress}`).then((response) => {
+        if (response.ok) {
+          response.json().then((projectDetails) => {
+            console.log("Project details response:", projectDetails);
+            setProjectInfo({
+              name: projectDetails.name,
+              description: projectDetails.description,
+              image: projectDetails.image,
+            });
+          });
+        } else {
+          console.error("Failed to fetch project details");
+        }
+      });
+    }
+  }, [project, projectAddress]);
 
   const activeListings = useMemo(() => {
     const raw = (listingsData ?? []) as Listing[];
@@ -287,18 +396,25 @@ export default function ProjectDashboardPage() {
         </div>
 
         <div className="mt-8">
-          {project && project.status === ProjectStatus.APPROVED && (
+          {project && (
             <>
-              <Card className="w-full mt-6">
-                <CardHeader>
-                  <CardTitle>Project Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="mb-4">
-                    Here goes the detailed information about the project...
-                  </p>
-                </CardContent>
-              </Card>
+              {projectInfo && (
+                <Card className="w-full mt-6">
+                  <CardHeader>
+                    <CardTitle>Project Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Image
+                      src={projectInfo.image || ""}
+                      alt={projectInfo.name || "Project Image"}
+                      width={400}
+                      height={300}
+                    />
+                    <p className="mb-4">{projectInfo.description || ""}</p>
+                  </CardContent>
+                </Card>
+              )}
+              {project.status === ProjectStatus.APPROVED && <>
               <MilestonesSection
                 milestones={milestones}
                 onAddMilestone={handleAddMilestone}
@@ -444,29 +560,10 @@ export default function ProjectDashboardPage() {
                   </Link>
                 </CardContent>
               </Card>
+              </>
+              }
             </>
           )}
-          {!project ||
-            (project.status !== ProjectStatus.APPROVED && (
-              <Card className="w-full mt-6">
-                <CardHeader>
-                  <CardTitle>Project Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="mb-4">
-                    Here goes the detailed information about the project...
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          {/* <Card className="w-full mt-6">
-                <CardHeader>
-                    <CardTitle>Activity Log</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="mb-4">Here goes the activity log related to the project...</p>
-                </CardContent>
-            </Card> */}
         </div>
       </div>
     </div>

@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import Image from "next/image";
 
 type Listing = {
   seller: `0x${string}`;
@@ -37,8 +38,7 @@ type TokenInfo = {
   projectId: number;
 };
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+import { BACKEND_URL } from "@/lib/config";
 
 export default function MarketplacePage() {
   const { isConnected } = useAccount();
@@ -93,18 +93,11 @@ export default function MarketplacePage() {
       try {
         const results = await Promise.all(
           uniqueTokenIds.map(async (tokenId) => {
-            // const response = await fetch(`${BACKEND_URL}/tokens/${tokenId}`);
-            // if (!response.ok) {
-            //     throw new Error(`Error al cargar token ${tokenId}`);
-            // }
-            // const tokenInfo = (await response.json()) as TokenInfo;
-            const tokenInfo = {
-              id: Number(tokenId),
-              projectId: Math.floor(Number(tokenId) / 10),
-              name: `Proyecto Ambiental #${tokenId}`,
-              description: `Descripción del proyecto ambiental asociado al token ${tokenId}.`,
-              image: `/placeholder-token.png`,
-            };
+            const response = await fetch(`${BACKEND_URL}/tokens/${tokenId}`);
+            if (!response.ok) {
+                throw new Error(`Error al cargar token ${tokenId}`);
+            }
+            const tokenInfo = (await response.json()) as TokenInfo;
             return [tokenId, tokenInfo] as const;
           }),
         );
@@ -136,6 +129,7 @@ export default function MarketplacePage() {
       await refetch();
     } catch (err) {
       console.error(err);
+      toast.error("Error al comprar tokens.");
     } finally {
       setBuyingListingId(null);
     }
@@ -225,9 +219,11 @@ export default function MarketplacePage() {
                   >
                     <div className="aspect-video w-full bg-zinc-100 dark:bg-zinc-900">
                       {tokenInfo?.image ? (
-                        <img
+                        <Image
                           src={tokenInfo.image}
                           alt={tokenInfo.name}
+                          width={200}
+                          height={200}
                           className="h-full w-full object-cover"
                         />
                       ) : (

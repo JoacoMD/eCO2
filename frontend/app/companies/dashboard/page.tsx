@@ -32,9 +32,16 @@ const statusLabels: Record<ProjectStatus, React.ReactNode> = {
   ),
 };
 
+import { BACKEND_URL } from "@/lib/config";
+
 export default function CompanyDashboardPage() {
   const { data: wallet } = useWalletClient();
   const [balance, setBalance] = useState<number>(0);
+  const [companyInfo, setCompanyInfo] = useState<{
+    name: string;
+    industry: string;
+    website: string;
+  } | null>(null);
   const { data: company, isLoading } = useReadContract({
     ...eco2ContractConfig,
     functionName: "getCompany",
@@ -57,6 +64,24 @@ export default function CompanyDashboardPage() {
       redirect("/");
     }
   }, [company]);
+
+  useEffect(() => {
+    if (company) {
+      fetch(`${BACKEND_URL}/companies/${wallet?.account.address}`).then((response) => {
+        if (response.ok) {
+          response.json().then((companyDetails) => {
+            setCompanyInfo({
+              name: companyDetails.name,
+              industry: companyDetails.industry,
+              website: companyDetails.website,
+            });
+          });
+        } else {
+          console.error("Failed to fetch company details");
+        }
+      });
+    }
+  }, [company, wallet?.account.address]);
 
   useEffect(() => {
     if (balanceData) {
@@ -166,12 +191,15 @@ export default function CompanyDashboardPage() {
         <div className="mt-8">
           <Card className="w-full mt-6">
             <CardHeader>
-              <CardTitle>Project Information</CardTitle>
+              <CardTitle>Company Information</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="mb-4">
-                Here goes the detailed information about the project...
+                {companyInfo?.industry}
               </p>
+              <a href={companyInfo?.website} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                {companyInfo?.website}
+              </a>
             </CardContent>
           </Card>
 

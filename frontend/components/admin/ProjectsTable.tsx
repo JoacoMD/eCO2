@@ -26,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { useReadContract, useWriteContract } from 'wagmi';
 import { eco2ContractConfig } from '@/contracts';
+import Image from 'next/image';
 
 // Define the Project type
 export type Project = {
@@ -37,10 +38,17 @@ export type Project = {
     status: number;
 }
 
+import { BACKEND_URL } from "@/lib/config";
+
 
 export default function AdminProjectsTable() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+    const [selectedProjectInfo, setSelectedProjectInfo] = useState<{
+        description: string;
+        imageUrl: string;
+        website: string;
+    } | null>(null);
     const [isInternalModalOpen, setIsInternalModalOpen] = useState(false);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
@@ -61,7 +69,20 @@ export default function AdminProjectsTable() {
     // Using a separate state for modal open to control it better
     const handleRowClick = (project: Project) => {
         setSelectedProject(project);
-        setIsInternalModalOpen(true);
+        fetch(`${BACKEND_URL}/projects/${project.projectAddress}`).then((response) => {
+            if (response.ok) {
+                response.json().then((projectDetails) => {
+                    setSelectedProjectInfo({
+                        description: projectDetails.description,
+                        imageUrl: projectDetails.image,
+                        website: projectDetails.website,
+                    });
+                    setIsInternalModalOpen(true);
+                });
+            } else {
+                console.error("Failed to fetch project details");
+            }
+        });
     };
 
     const openConfirmDialog = (e: React.MouseEvent, project: Project, action: 'approve' | 'reject') => {
@@ -196,13 +217,14 @@ export default function AdminProjectsTable() {
                         </DialogDescription>
                     </DialogHeader>
                     
-                    {selectedProject && (
+                    {selectedProjectInfo && selectedProject && (
                         <div className="grid gap-4 py-4">
                             <div className="aspect-video relative overflow-hidden rounded-md bg-muted">
                                 {/* Using a simple img tag for now, ideally use Next.js Image */}
-                                <img 
-                                    src={"selectedProject.imageUrl"} 
-                                    alt={selectedProject.name} 
+                                <Image 
+                                    src={selectedProjectInfo?.imageUrl} 
+                                    alt={selectedProject.name}
+                                    fill 
                                     className="object-cover w-full h-full" 
                                 />
                             </div>
@@ -210,19 +232,18 @@ export default function AdminProjectsTable() {
                             <div className="space-y-2">
                                 <h4 className="font-medium leading-none">Descripción</h4>
                                 <p className="text-sm text-muted-foreground">
-                                    {/* {selectedProject.description} */}
-                                    Descripción del proyecto va aquí. Esta es una descripción de ejemplo para ilustrar cómo se verá el texto en este espacio.
+                                    {selectedProjectInfo?.description}
                                 </p>
                             </div>
 
                             <div className="flex items-center space-x-2">
                                 <a 
-                                    href={"selectedProject.proposalPdfUrl"} 
+                                    href={selectedProjectInfo?.website} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:underline text-sm flex items-center"
                                 >
-                                    📄 Ver Propuesta Completa (PDF)
+                                    🌐 Ver Website
                                 </a>
                             </div>
                         </div>

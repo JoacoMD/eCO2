@@ -1,14 +1,21 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ethers } from 'ethers';
+import { NewTransaction } from 'src/database/schema';
+import { Web3Repository } from './web3.repository';
+import { eco2contract } from './contracts';
 
 @Injectable()
 export class Web3Service implements OnModuleInit {
   private provider: ethers.JsonRpcProvider;
   private contract: ethers.Contract;
 
+  constructor(
+    @Inject() private readonly web3Repository: Web3Repository,
+  ) {}
+
   // Tu contrato ABI (Interfaz) y Dirección
-  private readonly contractAddress = process.env.CONTRACT_ADDRESS;
-  private readonly contractABI = process.env.CONTRACT_ABI;
+  private readonly contractAddress = eco2contract.address;
+  private readonly contractABI = eco2contract.abi;
 
   onModuleInit() {
     // 1. Conexión al nodo (RPC)
@@ -24,7 +31,7 @@ export class Web3Service implements OnModuleInit {
     // 2. Instancia del contrato (Solo Lectura)
     this.contract = new ethers.Contract(
       this.contractAddress,
-      JSON.parse(this.contractABI),
+      this.contractABI,
       this.provider
     );
   }
@@ -35,5 +42,23 @@ export class Web3Service implements OnModuleInit {
   
   getProvider() {
     return this.provider;
+  }
+
+  async logEvent(eventData: NewTransaction) {
+    try {
+      await this.web3Repository.logTransaction(eventData);
+    } catch (error) {
+      console.error('Error logging transaction:', error);
+    }
+  }
+
+  async getLastBlockNumberProcessed() {
+    try {
+      const [transaction] = await this.web3Repository.findLastTransaction();
+      return transaction?.blockNumber ?? null;
+    } catch (error) {
+      console.error('Error getting last block number:', error);
+      return null;
+    }
   }
 }

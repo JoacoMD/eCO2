@@ -36,7 +36,7 @@ export class TokensRepository {
         }
     }
 
-    async createToken(tokenId: number, projectId: string) {
+    async createToken(tokenId: number, projectId: number) {
         try {
             return this.db
             .insert(schema.tokens)

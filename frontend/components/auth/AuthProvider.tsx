@@ -6,13 +6,12 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 import { toast } from "sonner";
-
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+import { BACKEND_URL } from "@/lib/config";
 
 type AuthUser = Record<string, unknown> & {
   address?: string;
@@ -36,6 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const previousAddressRef = useRef<string | undefined>(undefined);
+  const previousConnectedRef = useRef<boolean | undefined>(undefined);
 
   useEffect(() => {
     const loadSession = async () => {
@@ -59,6 +60,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     void loadSession();
   }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await fetch(`${BACKEND_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setUser(null);
+    }
+  }, []);
+
+  // Detect wallet disconnection or account change
+  useEffect(() => {
+    // Skip on initial mount
+    if (previousAddressRef.current === undefined && previousConnectedRef.current === undefined) {
+      previousAddressRef.current = address;
+      previousConnectedRef.current = isConnected;
+      return;
+    }
+
+    // Wallet disconnected
+    if (previousConnectedRef.current && !isConnected && user) {
+      toast.info("Billetera desconectada. Cerrando sesión...");
+      void logout();
+    }
+
+    // Account changed (different address)
+    if (
+      previousAddressRef.current &&
+      address &&
+      previousAddressRef.current !== address &&
+      user &&
+      user.address?.toLowerCase() !== address.toLowerCase()
+    ) {
+      toast.info("Cuenta cambiada. Cerrando sesión...");
+      void logout();
+    }
+
+    previousAddressRef.current = address;
+    previousConnectedRef.current = isConnected;
+  }, [address, isConnected, user, logout]);
 
   const loginWithWallet = useCallback(async () => {
     if (!address) {
@@ -113,18 +158,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [address, signMessageAsync]);
 
-  const logout = useCallback(async () => {
-    try {
-      await fetch(`${BACKEND_URL}/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setUser(null);
-    }
-  }, []);
 
   const authFetch = useCallback(async (input: RequestInfo, init?: RequestInit) => {
     return fetch(input, { ...init, credentials: "include" });

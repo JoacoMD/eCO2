@@ -4,9 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useReadContract, useWalletClient } from "wagmi";
 import { eco2ContractConfig } from "@/contracts";
 import { toast } from "sonner";
-
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+import { BACKEND_URL } from "@/lib/config";
 
 type TokenOption = {
   tokenId: bigint;

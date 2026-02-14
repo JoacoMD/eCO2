@@ -26,18 +26,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { useReadContract, useWriteContract } from "wagmi";
 import { eco2ContractConfig } from "@/contracts";
+import { BACKEND_URL } from "@/lib/config";
 
-// Define the Project type
 export type Company = {
-  id: bigint;
-  name: string;
-  companyAddress: `0x${string}`;
-  status: number;
-};
+    id: bigint;
+    name: string;
+    companyAddress: `0x${string}`;
+    status: number;
+}
 
 export default function AdminCompaniesTable() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [selectedCompanyInfo, setSelectedCompanyInfo] = useState<{
+    industry: string;
+    website: string;
+  } | null>(null);
   const [isInternalModalOpen, setIsInternalModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<
@@ -63,7 +67,19 @@ export default function AdminCompaniesTable() {
   // Using a separate state for modal open to control it better
   const handleRowClick = (company: Company) => {
     setSelectedCompany(company);
-    setIsInternalModalOpen(true);
+    fetch(`${BACKEND_URL}/companies/${company.companyAddress}`).then((response) => {
+      if (response.ok) {
+        response.json().then((companyDetails) => {
+          setSelectedCompanyInfo({
+            industry: companyDetails.industry,
+            website: companyDetails.website,
+          });
+          setIsInternalModalOpen(true);
+        });
+      } else {
+        console.error("Failed to fetch company details");
+      }
+    });
   };
 
   const openConfirmDialog = (
@@ -210,28 +226,20 @@ export default function AdminCompaniesTable() {
 
           {selectedCompany && (
             <div className="grid gap-4 py-4">
-              <div className="aspect-video relative overflow-hidden rounded-md bg-muted">
-                {/* Using a simple img tag for now, ideally use Next.js Image */}
-                <img
-                  src={"selectedCompany.imageUrl"}
-                  alt={selectedCompany.name}
-                  className="object-cover w-full h-full"
-                />
-              </div>
 
               <div className="space-y-2">
                 <h4 className="font-medium leading-none">Descripción</h4>
-                <p className="text-sm text-muted-foreground">{""}</p>
+                <p className="text-sm text-muted-foreground">Industria: {selectedCompanyInfo?.industry}</p>
               </div>
 
               <div className="flex items-center space-x-2">
                 <a
-                  href={"https://example.com/proposal.pdf"}
+                  href={selectedCompanyInfo?.website}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline text-sm flex items-center"
                 >
-                  📄 Ver Propuesta Completa (PDF)
+                  🌐 Ver Website
                 </a>
               </div>
             </div>

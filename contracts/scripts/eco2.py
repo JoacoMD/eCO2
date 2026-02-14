@@ -2,8 +2,8 @@ from brownie import accounts, network, config, eCO2, eCO2Tokens
 from brownie.network.gas.strategies import GasNowStrategy
 from brownie.network import gas_price
 
-CURRENT_CONTRACT = "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"
-CURRENT_TOKEN_CONTRACT = "0x0165878A594ca255338adfa4d48449f69242Eb8F"
+CURRENT_CONTRACT = "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE"
+CURRENT_TOKEN_CONTRACT = "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0"
 
 def _set_local_gas():
     # Para redes locales: usar gas legacy fijo evita "max fee < base fee"
@@ -91,15 +91,15 @@ def is_administrator():
 
 def register_project():
     _set_local_gas()
-    account = accounts[3]  # Project owner
+    account = accounts[4]  # Project owner
     eCO2_contract = _load_contract(CURRENT_CONTRACT) # Get the most recently deployed eCO2 contract
-    tx = eCO2_contract.registerProject("Amazonas Verde", {"from": account, "gas_price": "2 gwei"})
+    tx = eCO2_contract.registerProject("Solar Energy Initiative", {"from": account, "gas_price": "2 gwei"})
     tx.wait(1)
     print(f"Project registered by {account.address}.")
     print(tx)
-    eCO2_contract.approveProject(account.address, {"from": accounts[0], "gas_price": "2 gwei"})
+    # eCO2_contract.approveProject(account.address, {"from": accounts[0], "gas_price": "2 gwei"})
     # print("Project details:", eCO2_contract.getProject(account.address))
-    eCO2_contract.addMilestone(1000, {"from": account, "gas_price": "2 gwei"})
+    # eCO2_contract.addMilestone(1000, {"from": account, "gas_price": "2 gwei"})
     # print("Milestone added. Project details:", eCO2_contract.getProject(account.address))
     # eCO2_contract.verifyMilestone(account.address, {"from": accounts[0], "gas_price": "2 gwei"})
     # print("Milestone verified. Project details:", eCO2_contract.getProject(account.address))
@@ -116,7 +116,7 @@ def register_company():
 def approve_project():
     _set_local_gas()
     account = accounts[0]  # Administrator
-    project_account = accounts[1]  # Project owner
+    project_account = accounts[3]  # Project owner
     eCO2_contract = _load_contract(CURRENT_CONTRACT) # Get the most recently deployed eCO2 contract
     tx = eCO2_contract.approveProject(project_account.address, {"from": account, "gas_price": "2 gwei"})
     tx.wait(1)
@@ -193,3 +193,11 @@ def get_projects():
     projects = eCO2_contract.getProjects()
     print("Registered Projects:", projects)
     return projects
+
+def get_project_details():
+    _set_local_gas()
+    eCO2_contract = _load_contract(CURRENT_CONTRACT) # Get the most recently deployed eCO2 contract
+    project_account = accounts[3]  # Project owner
+    project_details = eCO2_contract.getProject(project_account.address)
+    print(f"Details for project {project_account.address}:", project_details)
+    return project_details

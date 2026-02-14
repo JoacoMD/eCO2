@@ -6,7 +6,7 @@ export type UpdateProjectRequest = {
 }
 
 export type CreateMilestoneRequest = {
-    id: string;
+    id: number;
     title: string;
     url: string;
 }
