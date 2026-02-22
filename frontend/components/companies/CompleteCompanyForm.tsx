@@ -65,7 +65,10 @@ export default function CompleteCompanyForm() {
                 <CardTitle>Complete Company</CardTitle>
             </CardHeader>
             <CardContent>
-                <form id="complete-company-form" onSubmit={form.handleSubmit}>
+                <form id="complete-company-form" onSubmit={(e) => {
+                    e.preventDefault();
+                    form.handleSubmit();
+                }}>
                     <FieldGroup>
                         <form.Field
               name="description"

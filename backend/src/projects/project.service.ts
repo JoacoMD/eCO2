@@ -2,12 +2,15 @@ import { Inject, Injectable } from "@nestjs/common";
 import { ProjectRepository } from "./project.repository";
 import { CreateMilestoneRequest, UpdateProjectRequest } from "./dto/types";
 import { Web3Service } from "src/web3/web3.service";
+import { id } from "ethers";
+import { TokensRepository } from "src/tokens/tokens.repository";
 
 @Injectable()
 export class ProjectService {
 
     constructor(
         @Inject() private readonly projectRepository: ProjectRepository,
+        @Inject() private readonly tokensRepository: TokensRepository,
         @Inject() private readonly web3Service: Web3Service,
     ) {}
 
@@ -101,5 +104,37 @@ export class ProjectService {
             id: projectId,
             name,
         });
+    }
+
+    async findTokensByProjectAddress(address: string) {
+        const project = await this.projectRepository.findProjectByAddress(address);
+        if (project.length === 0) {
+            throw new Error('Proyecto no encontrado');
+        }
+        const dictTokens = {} as Record<number, { name: string | null; description: string | null; image?: string | null }>;
+        const tokens = await this.tokensRepository.findTokensByProjectId(project[0].id);
+        tokens.forEach(token => {
+            dictTokens[token.id] = {
+                name: token.name,
+                description: token.description,
+                image: token.image,
+            };
+        });
+
+        
+        try {
+            const contract = this.web3Service.getContract();
+            const tokensFromChain = await contract.getBalanceOfAllTokens(address);
+
+            return tokensFromChain[0].map((tokenId: bigint ) => ({
+                id: Number(tokenId),
+                name: dictTokens[Number(tokenId)]?.name ?? "",
+                description: dictTokens[Number(tokenId)]?.description ?? "",
+                image: dictTokens[Number(tokenId)]?.image ?? "",
+                completed: !!dictTokens[Number(tokenId)]?.name, 
+            }));
+        } catch (error) {
+            throw new Error(`Error consultando tokens en la blockchain: ${error.message}`);
+        }
     }
 }

@@ -104,11 +104,9 @@ export default function NewProjectForm({onSuccess}: {onSuccess?: () => void}) {
       <CardFooter>
         <Field>
           <Button type="submit" form="new-company-form" disabled={isPending} className="bg-emerald-600 hover:bg-emerald-700">
-            { isPending ? "Creating..." : "Create Company" }
+            { (isPending && isLoading) ? "Creating..." : "Create Company" }
           </Button>
         </Field>
-        {isLoading && <div>Waiting for confirmation...</div>}
-        {isSuccess && <div>Transaction confirmed.</div>}
       </CardFooter>
     </Card>
   );

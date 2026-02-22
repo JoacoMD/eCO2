@@ -2,8 +2,8 @@ from brownie import accounts, network, config, eCO2, eCO2Tokens
 from brownie.network.gas.strategies import GasNowStrategy
 from brownie.network import gas_price
 
-CURRENT_CONTRACT = "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE"
-CURRENT_TOKEN_CONTRACT = "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0"
+CURRENT_CONTRACT = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+CURRENT_TOKEN_CONTRACT = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
 
 def _set_local_gas():
     # Para redes locales: usar gas legacy fijo evita "max fee < base fee"
@@ -91,7 +91,7 @@ def is_administrator():
 
 def register_project():
     _set_local_gas()
-    account = accounts[4]  # Project owner
+    account = accounts[1]  # Project owner
     eCO2_contract = _load_contract(CURRENT_CONTRACT) # Get the most recently deployed eCO2 contract
     tx = eCO2_contract.registerProject("Solar Energy Initiative", {"from": account, "gas_price": "2 gwei"})
     tx.wait(1)

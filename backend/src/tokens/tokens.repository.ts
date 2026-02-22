@@ -46,4 +46,15 @@ export class TokensRepository {
             throw new Error(`Error creating token: ${error.message}`);
         }
     }
+
+    async findTokensByProjectId(projectId: number) {
+        try {
+            return this.db
+            .select()
+            .from(schema.tokens)
+            .where(eq(schema.tokens.projectId, projectId));
+        } catch (error) {
+            throw new Error(`Error finding tokens by project ID: ${error.message}`);
+        }
+    }
 }

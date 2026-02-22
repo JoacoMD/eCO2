@@ -404,12 +404,15 @@ export default function ProjectDashboardPage() {
                     <CardTitle>Project Information</CardTitle>
                   </CardHeader>
                   <CardContent>
+                    <div className="mb-4">
                     <Image
                       src={projectInfo.image || ""}
                       alt={projectInfo.name || "Project Image"}
+                      className="rounded-md"
                       width={400}
                       height={300}
-                    />
+                      />
+                      </div>
                     <p className="mb-4">{projectInfo.description || ""}</p>
                   </CardContent>
                 </Card>

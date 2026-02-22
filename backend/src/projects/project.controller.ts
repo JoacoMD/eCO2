@@ -20,6 +20,16 @@ export class ProjectController {
         }
     }
 
+    @Get("/projects/:address/tokens")
+    async getProjectTokens(@Param('address') address: string): Promise<string> {
+        try {
+            const tokens = await this.projectService.findTokensByProjectAddress(address);
+            return JSON.stringify(tokens);
+        } catch (error) {
+            return `Error retrieving project tokens: ${error.message}`;
+        }
+    }
+
     @UseGuards(JwtAuthGuard)
     @Patch("/projects/:address")
     async updateProjectInfo(@Param('address') address: string, @Body() data: UpdateProjectRequest, @Req() req, @Res() res) {

@@ -71,7 +71,10 @@ export default function CompleteProjectForm() {
         <CardTitle>Complete Project</CardTitle>
       </CardHeader>
       <CardContent>
-        <form id="complete-project-form" onSubmit={form.handleSubmit}>
+        <form id="complete-project-form" onSubmit={(e) => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}>
           <FieldGroup>
             <form.Field
               name="description"

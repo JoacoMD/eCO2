@@ -135,7 +135,6 @@ contract eCO2 {
     }
 
     function getProject(address projectAddress) public view returns (Project memory) {
-        require(projects[projectAddress].id != 0, "Project not registered");
         return projects[projectAddress];
     }
 
@@ -205,7 +204,6 @@ contract eCO2 {
     }
 
     function getCompany(address companyAddress) public view returns (Company memory) {
-        require(companies[companyAddress].id != 0, "Company not registered");
         return companies[companyAddress];
     }
 

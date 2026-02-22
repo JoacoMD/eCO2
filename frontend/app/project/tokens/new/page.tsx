@@ -1,44 +1,55 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useReadContract, useWalletClient } from "wagmi";
-import { eco2ContractConfig } from "@/contracts";
+import { useEffect, useState } from "react";
+import { useWalletClient } from "wagmi";
 import { toast } from "sonner";
 import { BACKEND_URL } from "@/lib/config";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 type TokenOption = {
   tokenId: bigint;
-  amount: bigint;
 };
 
 export default function CompleteTokenPage() {
+  const { authFetch } = useAuth();
   const { data: wallet } = useWalletClient();
-  const { data: balanceData } = useReadContract({
-    ...eco2ContractConfig,
-    functionName: "getBalanceOfAllTokens",
-    args: [
-      wallet?.account.address ||
-        "0x0000000000000000000000000000000000000000",
-    ],
-    query: { enabled: !!wallet?.account.address },
-  });
 
   const [tokenId, setTokenId] = useState<string>("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [tokenOptions, setTokenOptions] = useState<TokenOption[]>([]);
 
-  const tokenOptions = useMemo(() => {
-    if (!balanceData) {
-      return [] as TokenOption[];
+  useEffect(() => {
+    if (wallet) {
+      fetch(`${BACKEND_URL}/projects/${wallet.account.address}/tokens`)
+        .then((response) => response.json())
+        .then(
+          (
+            data: {
+              id: number;
+              name: string | null;
+              description: string | null;
+              image?: string | null;
+              completed: boolean;
+            }[],
+          ) => {
+            setTokenOptions(
+              data
+                .filter((token) => !token.completed)
+                .map((token) => ({ tokenId: BigInt(token.id) })),
+            );
+          },
+        )
+        .catch((error) => {
+          console.error("Error fetching tokens:", error);
+          toast.error("Error al cargar los tokens disponibles.");
+        });
     }
-    const tokenIds = balanceData[0] as bigint[];
-    const balances = balanceData[1] as bigint[];
-    return tokenIds
-      .map((id, index) => ({ tokenId: id, amount: balances[index] }))
-      .filter((token) => token.amount > BigInt(0));
-  }, [balanceData]);
+  }, [wallet]);
 
   useEffect(() => {
     if (!tokenId && tokenOptions.length > 0) {
@@ -59,8 +70,8 @@ export default function CompleteTokenPage() {
 
     try {
       setSubmitting(true);
-      const response = await fetch(`${BACKEND_URL}/tokens`, {
-        method: "POST",
+      const response = await authFetch(`${BACKEND_URL}/tokens/${tokenId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: Number(tokenId),
@@ -90,7 +101,9 @@ export default function CompleteTokenPage() {
     <div className="min-h-screen bg-zinc-50 px-6 py-16 text-zinc-900">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
         <header className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-100">
-          <h1 className="text-2xl font-semibold">Completar información del token</h1>
+          <h1 className="text-2xl font-semibold">
+            Completar información del token
+          </h1>
           <p className="mt-2 text-sm text-zinc-600">
             Selecciona un token y agrega el nombre, descripción e imagen para
             completar su metadata.
@@ -111,14 +124,14 @@ export default function CompleteTokenPage() {
               onChange={(event) => setTokenId(event.target.value)}
             >
               {tokenOptions.length === 0 ? (
-                <option value="">Sin tokens disponibles</option>
+                <option value="">Sin tokens pendientes a completar</option>
               ) : (
                 tokenOptions.map((token) => (
                   <option
                     key={token.tokenId.toString()}
                     value={token.tokenId.toString()}
                   >
-                    Token #{token.tokenId.toString()} - {token.amount.toString()}
+                    Token #{token.tokenId.toString()}
                   </option>
                 ))
               )}
@@ -168,7 +181,12 @@ export default function CompleteTokenPage() {
             {submitting ? "Guardando..." : "Guardar información"}
           </button>
         </form>
+
+        <Link href="/project/dashboard">
+              <Button>Volver al dashboard</Button>
+        </Link>
       </div>
+
     </div>
   );
 }
