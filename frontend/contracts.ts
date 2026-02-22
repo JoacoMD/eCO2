@@ -1,5 +1,5 @@
 export const eco2tokensContractConfig = {
-    address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
+    address: (process.env.NEXT_PUBLIC_ECO2_TOKENS_CONTRACT_ADDRESS as `0x${string}`) || '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
     abi: [
     {
       "inputs": [],
@@ -570,7 +570,7 @@ export const eco2tokensContractConfig = {
 } as const
 
 export const eco2ContractConfig = {
-    address: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9',
+    address: (process.env.NEXT_PUBLIC_ECO2_CONTRACT_ADDRESS as `0x${string}`) || '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9',
     abi:  [
     {
       "inputs": [

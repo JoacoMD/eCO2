@@ -14,7 +14,7 @@ export class Web3Service implements OnModuleInit {
   ) {}
 
   // Tu contrato ABI (Interfaz) y Dirección
-  private readonly contractAddress = eco2contract.address;
+  private readonly contractAddress = process.env.CONTRACT_ADDRESS as `0x${string}`;
   private readonly contractABI = eco2contract.abi;
 
   onModuleInit() {
