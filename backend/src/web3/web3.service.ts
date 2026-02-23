@@ -1,6 +1,6 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ethers } from 'ethers';
-import { NewTransaction } from 'src/database/schema';
+import { NewTransaction } from '../database/schema';
 import { Web3Repository } from './web3.repository';
 import { eco2contract } from './contracts';
 

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Req, Res, UseGuards } from "@nestjs/common";
 import { TokensService } from "./tokens.service";
-import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
 @Controller()
 export class TokenController {

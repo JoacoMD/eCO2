@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Req, Res, UseGuards } from '@nestjs/common';
 import { CompaniesService } from './companies.service';
-import { NewCompany } from 'src/database/schema';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { NewCompany } from '../database/schema';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('companies')
 export class CompaniesController {

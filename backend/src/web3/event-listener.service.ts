@@ -1,9 +1,9 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { ethers } from 'ethers';
 import { Web3Service } from './web3.service';
-import { ProjectService } from 'src/projects/project.service';
-import { CompaniesService } from 'src/companies/companies.service';
-import { TokensService } from 'src/tokens/tokens.service';
+import { ProjectService } from '../projects/project.service';
+import { CompaniesService } from '../companies/companies.service';
+import { TokensService } from '../tokens/tokens.service';
 
 @Injectable()
 export class EventsListenerService implements OnModuleInit, OnModuleDestroy {

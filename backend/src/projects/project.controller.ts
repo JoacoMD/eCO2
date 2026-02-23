@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Patch, Inject, Post, UseGuards, Param, Req, Res } from "@nestjs/common";
 import { ProjectService } from "./project.service";
 import type { CreateMilestoneRequest, UpdateProjectRequest } from "./dto/types";
-import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
 @Controller()
 export class ProjectController {

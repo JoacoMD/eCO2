@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CompanyRepository } from './companies.repository';
-import { NewCompany } from 'src/database/schema';
-import { Web3Service } from 'src/web3/web3.service';
+import { NewCompany } from '../database/schema';
+import { Web3Service } from '../web3/web3.service';
 
 @Injectable()
 export class CompaniesService {

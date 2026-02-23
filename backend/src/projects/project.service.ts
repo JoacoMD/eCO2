@@ -1,9 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { ProjectRepository } from "./project.repository";
 import { CreateMilestoneRequest, UpdateProjectRequest } from "./dto/types";
-import { Web3Service } from "src/web3/web3.service";
-import { id } from "ethers";
-import { TokensRepository } from "src/tokens/tokens.repository";
+import { Web3Service } from "../web3/web3.service";
+import { TokensRepository } from "../tokens/tokens.repository";
 
 @Injectable()
 export class ProjectService {

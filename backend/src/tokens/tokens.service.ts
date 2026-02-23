@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { TokensRepository } from "./tokens.repository";
-import { ProjectRepository } from "src/projects/project.repository";
+import { ProjectRepository } from "../projects/project.repository";
 
 @Injectable()
 export class TokensService {

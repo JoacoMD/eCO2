@@ -1,8 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { DRIZZLE } from "src/database/drizzle.provider";
-import * as schema from "src/database/schema";
+import { DRIZZLE } from "../database/drizzle.provider";
+import * as schema from "../database/schema";
 import { CreateMilestoneRequest, UpdateProjectRequest } from "./dto/types";
 
 @Injectable()

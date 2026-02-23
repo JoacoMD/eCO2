@@ -1,7 +1,7 @@
 CREATE TYPE "auth_message_status" AS ENUM('pending', 'used', 'expired');--> statement-breakpoint
 CREATE TABLE "auth_messages" (
 	"id" uuid PRIMARY KEY,
-	"address" text NOT NULL UNIQUE,
+	"address" text NOT NULL,
 	"status" "auth_message_status" DEFAULT 'pending'::"auth_message_status" NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );

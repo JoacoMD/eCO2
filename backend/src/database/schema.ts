@@ -40,7 +40,7 @@ export const statusEnum = pgEnum('auth_message_status', ['pending', 'used', 'exp
 
 export const auth_messages = pgTable('auth_messages', {
     id: uuid('id').primaryKey(),
-    address: text('address').unique().notNull(),
+    address: text('address').notNull(),
     status: statusEnum('status').default('pending').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
 });
